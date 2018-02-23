@@ -134,7 +134,7 @@ class ShipDataset(utils.Dataset):
         images = [i for i in files if "mask" not in i]
         # mask = [i for i in files if "mask" in i]
         for i in images:
-            self.add_image("shapes", image_id=i.split(".")[0], path=file_addr + i)
+            self.add_image("shapes", image_id=i.split(".")[0], path=file_addr + i, shapes=["ship"])
 
     def load_image(self, image_id):
         """Generate an image from the specs of the given image ID.
@@ -150,9 +150,10 @@ class ShipDataset(utils.Dataset):
         """Generate instance masks for shapes of the given image ID.
         """
         info = self.image_info[image_id]
-        mask = cv2.imread(info["path"].split(".")[0] + "-mask.jpg")
-        ships = ["ship", "ship", "ship"]
+        mask = cv2.imread(info["path"].split(".")[0] + "-mask.jpg", cv2.IMREAD_GRAYSCALE)
+        ships = info["shapes"]
         class_ids = np.array([self.class_names.index(s) for s in ships])
+        mask = mask[:, :, np.newaxis]
         return mask, class_ids.astype(np.int32)
 
 
@@ -309,8 +310,8 @@ if __name__ == "__main__":
         results = model.detect([image], verbose=0)
         r = results[0]
         # Compute AP
-        AP, precisions, recalls, overlaps = utils.compute_ap(gt_bbox, gt_class_id,
-                                                             r["rois"], r["class_ids"], r["scores"])
+        AP, precisions, recalls, overlaps = utils.compute_ap(gt_bbox, gt_class_id, gt_mask,
+                                                             r["rois"], r["class_ids"], r["scores"], r['masks'])
         APs.append(AP)
 
     print("mAP: ", np.mean(APs))
